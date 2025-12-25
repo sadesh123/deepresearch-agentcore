@@ -1,0 +1,37 @@
+# Dockerfile for AWS Bedrock AgentCore Runtime
+# Target: arm64 (aarch64) architecture
+
+FROM --platform=linux/arm64 python:3.11-slim
+
+# Set working directory
+WORKDIR /var/task
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY agents/ ./agents/
+COPY backend/ ./backend/
+COPY .env .env
+
+# Create data directory
+RUN mkdir -p /var/task/data/conversations
+
+# Expose port 8080 (AgentCore Runtime default)
+EXPOSE 8080
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Run the application on port 8080 (AgentCore requirement)
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]

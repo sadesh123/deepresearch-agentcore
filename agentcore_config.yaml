@@ -1,0 +1,76 @@
+# AWS Bedrock AgentCore Deployment Configuration
+# For Deep Research Agent
+
+name: deepresearch-agent
+version: 1.0.0
+
+# Deployment settings
+deployment:
+  region: us-east-1
+  runtime: python3.11
+  memory: 2048  # MB
+  timeout: 300  # seconds (5 minutes for research workflows)
+
+# Environment variables
+environment:
+  AWS_REGION: us-east-1
+  BEDROCK_MODEL_ID: us.anthropic.claude-3-5-haiku-20241022-v1:0
+  BACKEND_PORT: "8001"
+  ARXIV_MAX_RESULTS: "5"
+  COUNCIL_NUM_MEMBERS: "3"
+
+# IAM permissions required
+permissions:
+  - bedrock:InvokeModel
+  - bedrock:InvokeModelWithResponseStream
+  - logs:CreateLogGroup
+  - logs:CreateLogStream
+  - logs:PutLogEvents
+
+# Container configuration (if using ECS/Fargate)
+container:
+  image: deepresearch-agent
+  platform: linux/amd64
+  ports:
+    - "8001:8001"
+  health_check:
+    path: /health
+    interval: 30
+    timeout: 10
+    retries: 3
+
+# API Gateway configuration
+api:
+  cors:
+    origins:
+      - "*"  # Restrict in production
+    methods:
+      - GET
+      - POST
+      - DELETE
+    headers:
+      - Content-Type
+      - Authorization
+
+# Monitoring and logging
+monitoring:
+  enable_xray: true
+  enable_cloudwatch: true
+  log_level: INFO
+  metrics:
+    - agent_invocations
+    - response_time
+    - error_rate
+
+# Autoscaling (for production)
+autoscaling:
+  min_instances: 1
+  max_instances: 5
+  target_cpu_utilization: 70
+
+# Tags
+tags:
+  Project: DeepResearchAgent
+  Environment: Demo
+  Purpose: UniversityDemo
+  ManagedBy: AgentCore
