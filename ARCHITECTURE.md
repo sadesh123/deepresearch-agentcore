@@ -97,21 +97,6 @@
 11. **API GATEWAY** returns JSON to frontend
 12. **React** displays 3-stage deliberation results
 
-## Local Development Architecture
-
-```
-┌─────────────┐         ┌──────────────┐         ┌─────────────────┐
-│   Browser   │ ──────> │   FastAPI    │ ──────> │  AWS Bedrock    │
-│ localhost:  │  HTTP   │   Backend    │  boto3  │  (Claude Model) │
-│   5173      │ <────── │ localhost:   │ <────── │                 │
-└─────────────┘         │   8001       │         └─────────────────┘
-                        └──────┬───────┘                 │
-                               │                         │
-                               │                         ▼
-                               │                  ┌──────────────┐
-                               └─────────────────>│  arXiv API   │
-                                 Direct calls     └──────────────┘
-```
 
 ## Key Components
 
@@ -123,12 +108,6 @@
 - **AgentCore Runtime** - Multi-agent orchestration
 - **Bedrock (Claude)** - LLM inference
 - **arXiv API** - Academic research data
-
-### Frontend
-- **React + Vite** - UI framework
-- **CouncilView.jsx** - 3-stage deliberation UI
-- **DxOView.jsx** - Sequential workflow UI
-- **api.js** - API client
 
 ## Data Flow
 
@@ -158,15 +137,6 @@ Response: Structured JSON with workflow array
 - Lambda execution role with Bedrock permissions
 - S3 bucket policy for CloudFront access
 
-### Environment Variables
-- `AWS_REGION`
-- `BEDROCK_MODEL_ID`
-- `AGENTCORE_RUNTIME_ARN`
-
-### Secrets (not in git)
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-
 ## Technology Stack
 
 | Layer | Technology | Purpose |
@@ -181,19 +151,5 @@ Response: Structured JSON with workflow array
 | **Backend** | FastAPI (local dev) | Local API server |
 | **External API** | arXiv | Academic research data |
 
-## Cost Optimization
 
-- **CloudFront**: Pay per request + data transfer
-- **S3**: Minimal storage costs for static assets
-- **API Gateway**: HTTP API (cheaper than REST API)
-- **Lambda**: Pay per invocation (cold starts optimized)
-- **Bedrock**: Pay per token (Haiku is cost-effective)
-- **arXiv API**: Free tier
 
-## Performance Characteristics
-
-- **Cold Start**: ~2-3s (Lambda + AgentCore initialization)
-- **Warm Request**: ~5-15s (depending on LLM calls)
-- **Council Mode**: 7 Bedrock calls (some parallel)
-- **DxO Mode**: 4 Bedrock calls (sequential + arXiv)
-- **Frontend Load**: <500ms (cached via CloudFront)
