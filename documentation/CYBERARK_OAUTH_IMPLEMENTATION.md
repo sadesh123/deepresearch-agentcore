@@ -2,31 +2,15 @@
 
 ## Context
 
-This document provides step-by-step instructions to implement a "Connect CyberArk" button in the Deep Research Agent as a proof-of-concept for AgentCore Gateway outbound authentication.
+This document provides step-by-step instructions to implement an IdP integration with Deep Research Agent as a proof-of-concept for AgentCore Gateway inbound authentication.
 
-**Goal**: Demonstrate AgentCore's ability to use CyberArk as an OAuth 2.0 identity provider for agents to access downstream services on behalf of users.
+**Goal**: Demonstrate AgentCore's ability to use CyberArk as an OAuth 2.0 identity provider for agent to validate user identity before usage.
 
 ## Background
 
-### What is Outbound Authentication?
+### What is Inbound/Outbound Authentication?
 - **Inbound Auth**: Who can ACCESS the agent (user → agent)
 - **Outbound Auth**: What can the agent ACCESS on behalf of user (agent → downstream service)
-
-We're implementing **outbound authentication** - allowing the Deep Research Agent to authenticate to downstream services (like enterprise research repositories) using the user's CyberArk credentials.
-
-### OAuth Flow
-```
-User clicks "Connect CyberArk"
-  → Agent tool calls @requires_access_token
-  → Returns authorization URL
-  → Frontend opens CyberArk login popup
-  → User authenticates with CyberArk
-  → CyberArk redirects with auth code
-  → AgentCore exchanges code for token
-  → Token stored in AWS Token Vault
-  → Agent returns user info from token
-  → Frontend displays connection status
-```
 
 ---
 
