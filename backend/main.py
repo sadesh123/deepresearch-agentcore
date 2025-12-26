@@ -39,6 +39,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Enable debug logging for AWS and bedrock_agentcore
+logging.getLogger('bedrock_agentcore').setLevel(logging.INFO)
+logging.getLogger('botocore').setLevel(logging.INFO)
+
 # Global agent instances
 council_agent = None
 dxo_agent = None

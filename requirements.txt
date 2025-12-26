@@ -1,6 +1,7 @@
 # AWS Bedrock
 boto3>=1.34.0
 botocore>=1.34.0
+bedrock-agentcore>=0.1.0
 
 # Web Framework
 fastapi>=0.109.0
@@ -18,6 +19,9 @@ xmltodict>=0.13.0
 # Utilities
 python-dotenv>=1.0.0
 python-multipart>=0.0.6
+
+# JWT token handling
+pyjwt>=2.8.0
 
 # CORS
 fastapi-cors>=0.0.6

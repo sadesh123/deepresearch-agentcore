@@ -117,51 +117,67 @@ def lambda_handler(event, context):
     """
     Lambda handler for AgentCore proxy.
 
-    Expects API Gateway HTTP API event with:
-    - POST /council - Council mode
-    - POST /dxo - DxO mode
+    Handles both formats:
+    1. API Gateway HTTP API format (backward compatibility)
+    2. AgentCore Gateway MCP format (new)
     """
 
     print(f"Event: {json.dumps(event)}")
 
     try:
-        # Parse request
-        http_method = event.get('requestContext', {}).get('http', {}).get('method', 'POST')
-        path = event.get('rawPath', '/')
+        # Detect format: MCP (from Gateway) or HTTP (from API Gateway)
+        if 'question' in event:
+            # MCP format from AgentCore Gateway
+            mode = 'council'  # Default, will be inferred from context
+            question = event.get('question', '')
 
-        # Parse body
-        body = event.get('body', '{}')
-        if isinstance(body, str):
-            body = json.loads(body)
+            # Infer mode from Lambda function name or context
+            function_name = context.function_name if context else ''
+            if 'Council' in function_name or 'council' in str(event):
+                mode = 'council'
+            elif 'DxO' in function_name or 'dxo' in str(event).lower():
+                mode = 'dxo'
 
-        # Determine mode from path
-        if '/council' in path:
-            mode = 'council'
-        elif '/dxo' in path:
-            mode = 'dxo'
+            print(f"MCP Format - Mode: {mode}, Question: {question[:100]}...")
+
         else:
-            return {
-                'statusCode': 400,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({'error': 'Invalid path. Use /council or /dxo'})
-            }
+            # HTTP format from API Gateway
+            http_method = event.get('requestContext', {}).get('http', {}).get('method', 'POST')
+            path = event.get('rawPath', '/')
 
-        # Get question from request
-        question = body.get('question', '')
-        if not question:
-            return {
-                'statusCode': 400,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({'error': 'Missing question in request body'})
-            }
+            # Parse body
+            body = event.get('body', '{}')
+            if isinstance(body, str):
+                body = json.loads(body)
 
-        print(f"Mode: {mode}, Question: {question[:100]}...")
+            # Determine mode from path
+            if '/council' in path:
+                mode = 'council'
+            elif '/dxo' in path:
+                mode = 'dxo'
+            else:
+                return {
+                    'statusCode': 400,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': 'Invalid path. Use /council or /dxo'})
+                }
+
+            # Get question from request
+            question = body.get('question', '')
+            if not question:
+                return {
+                    'statusCode': 400,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': 'Missing question in request body'})
+                }
+
+            print(f"HTTP Format - Mode: {mode}, Question: {question[:100]}...")
 
         # Generate session ID (must be 33+ characters)
         session_id = str(uuid.uuid4()) + str(uuid.uuid4())
@@ -225,44 +241,56 @@ def lambda_handler(event, context):
                     stage3_content = parse_stage3_from_markdown(text_content)
                     aggregate_rankings = parse_aggregate_rankings_from_markdown(text_content)
 
-                    return {
-                        'statusCode': 200,
-                        'headers': {
-                            'Content-Type': 'application/json',
-                            'Access-Control-Allow-Origin': '*'
-                        },
-                        'body': json.dumps({
-                            'question': question,
-                            'stage1': stage1_responses,
-                            'stage2': stage2_rankings,
-                            'stage3': stage3_content,
-                            'metadata': {
-                                'timestamp': output.get('timestamp', ''),
-                                'aggregate_rankings': aggregate_rankings
-                            }
-                        })
+                    result = {
+                        'question': question,
+                        'stage1': stage1_responses,
+                        'stage2': stage2_rankings,
+                        'stage3': stage3_content,
+                        'metadata': {
+                            'timestamp': output.get('timestamp', ''),
+                            'aggregate_rankings': aggregate_rankings
+                        }
                     }
+
+                    # Return in appropriate format
+                    if 'question' in event:  # MCP format
+                        return json.dumps(result)
+                    else:  # HTTP format
+                        return {
+                            'statusCode': 200,
+                            'headers': {
+                                'Content-Type': 'application/json',
+                                'Access-Control-Allow-Origin': '*'
+                            },
+                            'body': json.dumps(result)
+                        }
                 # For DxO mode
                 elif mode == 'dxo':
-                    return {
-                        'statusCode': 200,
-                        'headers': {
-                            'Content-Type': 'application/json',
-                            'Access-Control-Allow-Origin': '*'
-                        },
-                        'body': json.dumps({
-                            'question': question,
-                            'workflow': [
-                                {
-                                    'role': 'Complete Analysis',
-                                    'output': text_content
-                                }
-                            ],
-                            'metadata': {
-                                'timestamp': output.get('timestamp', '')
+                    result = {
+                        'question': question,
+                        'workflow': [
+                            {
+                                'role': 'Complete Analysis',
+                                'output': text_content
                             }
-                        })
+                        ],
+                        'metadata': {
+                            'timestamp': output.get('timestamp', '')
+                        }
                     }
+
+                    # Return in appropriate format
+                    if 'question' in event:  # MCP format
+                        return json.dumps(result)
+                    else:  # HTTP format
+                        return {
+                            'statusCode': 200,
+                            'headers': {
+                                'Content-Type': 'application/json',
+                                'Access-Control-Allow-Origin': '*'
+                            },
+                            'body': json.dumps(result)
+                        }
 
         # Fallback response
         return {

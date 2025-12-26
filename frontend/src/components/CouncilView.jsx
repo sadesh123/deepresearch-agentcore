@@ -6,16 +6,34 @@ function CouncilView({ result }) {
   const [activeStage, setActiveStage] = useState('stage1')
   const [activeTab, setActiveTab] = useState(0)
 
+  console.log('CouncilView received result:', result)
+  console.log('Result type:', typeof result)
+
   if (!result) return null
 
-  const { stage1, stage2, stage3, metadata } = result
+  // Parse result if it's a string
+  let parsedResult = result
+  if (typeof result === 'string') {
+    console.log('Result is a string, parsing...')
+    try {
+      parsedResult = JSON.parse(result)
+      console.log('Parsed result:', parsedResult)
+    } catch (e) {
+      console.error('Failed to parse result:', e)
+      return <div className="error">Failed to parse response data</div>
+    }
+  }
+
+  const { stage1, stage2, stage3, metadata } = parsedResult
+
+  console.log('Destructured values:', { stage1, stage2, stage3, metadata, question: parsedResult.question })
 
   return (
     <div className="council-view card">
       <div className="result-header">
         <h2>Council Deliberation Results</h2>
         <div className="question-display">
-          <strong>Question:</strong> {result.question}
+          <strong>Question:</strong> {parsedResult.question}
         </div>
       </div>
 
@@ -47,24 +65,30 @@ function CouncilView({ result }) {
             <p className="stage-description">
               Each council member independently analyzed the question:
             </p>
-            <div className="member-tabs">
-              {stage1.map((response, idx) => (
-                <button
-                  key={idx}
-                  className={`member-tab ${activeTab === idx ? 'active' : ''}`}
-                  onClick={() => setActiveTab(idx)}
-                >
-                  {response.member_id}
-                </button>
-              ))}
-            </div>
-            <div className="member-content">
-              {stage1[activeTab] && (
-                <div className="markdown-content">
-                  <ReactMarkdown>{stage1[activeTab].content}</ReactMarkdown>
+            {stage1 && stage1.length > 0 ? (
+              <>
+                <div className="member-tabs">
+                  {stage1.map((response, idx) => (
+                    <button
+                      key={idx}
+                      className={`member-tab ${activeTab === idx ? 'active' : ''}`}
+                      onClick={() => setActiveTab(idx)}
+                    >
+                      {response.member_id}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
+                <div className="member-content">
+                  {stage1[activeTab] && (
+                    <div className="markdown-content">
+                      <ReactMarkdown>{stage1[activeTab].content}</ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p>No responses available.</p>
+            )}
           </div>
         )}
 
@@ -75,7 +99,7 @@ function CouncilView({ result }) {
               Council members evaluated all responses anonymously:
             </p>
 
-            {metadata.aggregate_rankings && (
+            {metadata && metadata.aggregate_rankings && metadata.aggregate_rankings.length > 0 && (
               <div className="aggregate-rankings">
                 <h4>Aggregate Rankings</h4>
                 <div className="ranking-list">
@@ -97,33 +121,35 @@ function CouncilView({ result }) {
               </div>
             )}
 
-            <div className="rankings-detail">
-              <h4>Individual Rankings</h4>
-              <div className="member-tabs">
-                {stage2.map((ranking, idx) => (
-                  <button
-                    key={idx}
-                    className={`member-tab ${activeTab === idx ? 'active' : ''}`}
-                    onClick={() => setActiveTab(idx)}
-                  >
-                    {ranking.member_id}
-                  </button>
-                ))}
+            {stage2 && stage2.length > 0 && (
+              <div className="rankings-detail">
+                <h4>Individual Rankings</h4>
+                <div className="member-tabs">
+                  {stage2.map((ranking, idx) => (
+                    <button
+                      key={idx}
+                      className={`member-tab ${activeTab === idx ? 'active' : ''}`}
+                      onClick={() => setActiveTab(idx)}
+                    >
+                      {ranking.member_id}
+                    </button>
+                  ))}
+                </div>
+                <div className="ranking-content">
+                  {stage2[activeTab] && (
+                    <>
+                      <div className="markdown-content">
+                        <ReactMarkdown>{stage2[activeTab].raw_text}</ReactMarkdown>
+                      </div>
+                      <div className="extracted-ranking">
+                        <strong>Extracted Ranking:</strong>{' '}
+                        {stage2[activeTab].parsed_ranking && stage2[activeTab].parsed_ranking.join(' > ')}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="ranking-content">
-                {stage2[activeTab] && (
-                  <>
-                    <div className="markdown-content">
-                      <ReactMarkdown>{stage2[activeTab].raw_text}</ReactMarkdown>
-                    </div>
-                    <div className="extracted-ranking">
-                      <strong>Extracted Ranking:</strong>{' '}
-                      {stage2[activeTab].parsed_ranking.join(' > ')}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -133,9 +159,13 @@ function CouncilView({ result }) {
             <p className="stage-description">
               The chairman synthesized all inputs into a comprehensive answer:
             </p>
-            <div className="final-answer markdown-content">
-              <ReactMarkdown>{stage3.content}</ReactMarkdown>
-            </div>
+            {stage3 && stage3.content ? (
+              <div className="final-answer markdown-content">
+                <ReactMarkdown>{stage3.content}</ReactMarkdown>
+              </div>
+            ) : (
+              <p>No final synthesis available.</p>
+            )}
           </div>
         )}
       </div>
