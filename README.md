@@ -87,6 +87,7 @@ AWS Bedrock AgentCore
     ↓
 Claude 3.5 Haiku + arXiv API
 ```
+<img width="2148" height="1222" alt="agentcore2" src="https://github.com/user-attachments/assets/6b51e943-81d1-40af-adf6-0d945c9ec59b" />
 
 ## Project Structure
 ```
